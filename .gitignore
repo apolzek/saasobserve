@@ -1,0 +1,32 @@
+# Go
+*.test
+*.out
+bin/
+vendor/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.log
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+!**/templates/*.key
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local state
+tmp/
+.tmp/
+kubeconfig
+*.tfstate*

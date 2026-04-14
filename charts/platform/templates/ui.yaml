@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.ui.replicas }}
+  selector: { matchLabels: { app: ui } }
+  template:
+    metadata: { labels: { app: ui } }
+    spec:
+      containers:
+        - name: ui
+          image: "{{ .Values.images.ui.repo }}:{{ .Values.images.ui.tag }}"
+          imagePullPolicy: {{ .Values.images.ui.pullPolicy }}
+          env:
+            - { name: API_URL, value: "http://api.{{ .Values.namespace }}.svc.cluster.local:8080" }
+            - { name: NEXT_PUBLIC_API_URL, value: "/api/proxy" }
+          ports: [{ containerPort: 3000 }]
+          resources: {{- include "platform.resources" (dict "Values" .Values "component" "ui") | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ui
+  namespace: {{ .Values.namespace }}
+spec:
+  selector: { app: ui }
+  ports: [{ name: http, port: 3000, targetPort: 3000 }]

@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  POSTGRES_DB: {{ .Values.postgres.database | quote }}
+  POSTGRES_USER: {{ .Values.postgres.user | quote }}
+  POSTGRES_PASSWORD: {{ .Values.postgres.password | quote }}
+  DATABASE_URL: "postgres://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres.{{ .Values.namespace }}.svc.cluster.local:5432/{{ .Values.postgres.database }}?sslmode=disable"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: {{ .Values.postgres.storageClass }}
+  resources: { requests: { storage: {{ .Values.postgres.storage }} } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: "{{ .Values.images.postgres.repo }}:{{ .Values.images.postgres.tag }}"
+          envFrom:
+            - secretRef: { name: postgres }
+          ports: [{ containerPort: 5432 }]
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data, subPath: pg }
+          resources: {{- include "platform.resources" (dict "Values" .Values "component" "postgres") | nindent 12 }}
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: postgres-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+spec:
+  selector: { app: postgres }
+  ports: [{ name: pg, port: 5432, targetPort: 5432 }]

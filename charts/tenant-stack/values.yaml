@@ -1,0 +1,58 @@
+# Default values — production profile (1 CPU / 1 GiB per component).
+# Use values-scale-test.yaml for the 100-tenant kind harness.
+
+tenant:
+  id: "example"
+  displayName: "Example tenant"
+
+images:
+  otelcol: otel/opentelemetry-collector-contrib:0.111.0
+  victoriametrics: victoriametrics/victoria-metrics:v1.106.1
+  clickhouse: clickhouse/clickhouse-server:24.8
+  grafana: grafana/grafana:11.3.0
+
+resources:
+  # Applied to every component unless overridden below.
+  default:
+    requests: { cpu: "1", memory: "1Gi" }
+    limits:   { cpu: "1", memory: "1Gi" }
+  otelcol: {}
+  victoriametrics: {}
+  clickhouse: {}
+  grafana: {}
+
+storage:
+  # Set to "" to use emptyDir (scale-test profile overrides this).
+  storageClass: "standard"
+  victoriametrics: "10Gi"
+  clickhouse: "20Gi"
+  grafana: "2Gi"
+
+grafana:
+  adminUser: "admin"
+  adminPassword: "change-me-in-production"
+  oidc:
+    enabled: false
+    clientId: ""
+    clientSecret: ""
+    authUrl: "https://accounts.google.com/o/oauth2/auth"
+    tokenUrl: "https://oauth2.googleapis.com/token"
+    apiUrl: "https://openidconnect.googleapis.com/v1/userinfo"
+    allowedDomains: ""
+  ingress:
+    enabled: true
+    className: "nginx"
+    host: "example.grafana.saasobserve.local"
+
+# Gateway -> tenant network policy allow list.
+networkPolicy:
+  enabled: true
+  gatewayNamespace: "saasobserve-system"
+
+otelcol:
+  # The per-tenant collector only accepts traffic from the gateway collector
+  # inside saasobserve-system. Gateway forwards already-authenticated OTLP.
+  receiverEndpoint: "0.0.0.0"
+  batch:
+    timeout: 5s
+    sendBatchSize: 8192

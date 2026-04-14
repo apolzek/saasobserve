@@ -1,0 +1,28 @@
+{
+  "resourceMetrics": [{
+    "resource": {
+      "attributes": [
+        { "key": "service.name", "value": { "stringValue": "sample-app" } }
+      ]
+    },
+    "scopeMetrics": [{
+      "scope": { "name": "sample" },
+      "metrics": [{
+        "name": "requests_total",
+        "unit": "1",
+        "sum": {
+          "aggregationTemporality": 2,
+          "isMonotonic": true,
+          "dataPoints": [{
+            "asInt": 42,
+            "startTimeUnixNano": "1700000000000000000",
+            "timeUnixNano":      "1700000000000000000",
+            "attributes": [
+              { "key": "method", "value": { "stringValue": "GET" } }
+            ]
+          }]
+        }
+      }]
+    }]
+  }]
+}

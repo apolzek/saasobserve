@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-otelcol
+  namespace: {{ .Values.namespace }}
+data:
+  config.yaml: |
+    # Public ingest gateway. Receives OTLP from customers and routes per tenant.
+    #
+    # Authentication is enforced at the ingress layer via nginx auth_request →
+    # auth-webhook. By the time traffic lands here we already have a trusted
+    # X-Saasobserve-Tenant header injected by the ingress controller.
+    #
+    # The per-tenant route table is rendered from .Values.gatewayCollector.tenants.
+    # The provisioner commits updates to that value through gitops/tenants.
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            include_metadata: true
+          http:
+            endpoint: 0.0.0.0:4318
+            include_metadata: true
+    processors:
+      memory_limiter:
+        check_interval: 2s
+        limit_percentage: 85
+        spike_limit_percentage: 25
+      # Copy the trusted tenant header into a resource attribute so the
+      # routing processor can read it.
+      transform/tenant:
+        error_mode: ignore
+        metric_statements:
+          - context: resource
+            statements:
+              - set(attributes["tenant.id"], metadata["x-saasobserve-tenant"])
+        log_statements:
+          - context: resource
+            statements:
+              - set(attributes["tenant.id"], metadata["x-saasobserve-tenant"])
+        trace_statements:
+          - context: resource
+            statements:
+              - set(attributes["tenant.id"], metadata["x-saasobserve-tenant"])
+      batch:
+        timeout: 2s
+        send_batch_size: 8192
+      routing:
+        from_attribute: tenant.id
+        default_exporters: [debug]
+        table:
+{{- range .Values.gatewayCollector.tenants }}
+          - value: {{ .id | quote }}
+            exporters: ["otlphttp/tenant-{{ .id }}"]
+{{- end }}
+    exporters:
+      debug: { verbosity: basic }
+{{- range .Values.gatewayCollector.tenants }}
+      otlphttp/tenant-{{ .id }}:
+        endpoint: {{ .endpoint | quote }}
+        tls: { insecure: true }
+{{- end }}
+    service:
+      telemetry:
+        metrics: { level: basic, address: 0.0.0.0:8888 }
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, transform/tenant, batch, routing]
+          exporters:
+            - debug
+{{- range .Values.gatewayCollector.tenants }}
+            - otlphttp/tenant-{{ .id }}
+{{- end }}
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, transform/tenant, batch, routing]
+          exporters:
+            - debug
+{{- range .Values.gatewayCollector.tenants }}
+            - otlphttp/tenant-{{ .id }}
+{{- end }}
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, transform/tenant, batch, routing]
+          exporters:
+            - debug
+{{- range .Values.gatewayCollector.tenants }}
+            - otlphttp/tenant-{{ .id }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-otelcol
+  namespace: {{ .Values.namespace }}
+  annotations:
+    # Roll when the tenant list changes so the routing table is rebuilt.
+    saasobserve.io/config-hash: {{ .Values.gatewayCollector.tenants | toYaml | sha256sum }}
+spec:
+  replicas: {{ .Values.gatewayCollector.replicas }}
+  selector: { matchLabels: { app: gateway-otelcol } }
+  template:
+    metadata:
+      labels: { app: gateway-otelcol }
+      annotations:
+        saasobserve.io/config-hash: {{ .Values.gatewayCollector.tenants | toYaml | sha256sum }}
+    spec:
+      containers:
+        - name: otelcol
+          image: "{{ .Values.images.otelcol.repo }}:{{ .Values.images.otelcol.tag }}"
+          args: ["--config=/etc/otelcol/config.yaml"]
+          ports:
+            - { name: otlp-grpc, containerPort: 4317 }
+            - { name: otlp-http, containerPort: 4318 }
+            - { name: metrics,   containerPort: 8888 }
+          volumeMounts:
+            - { name: config, mountPath: /etc/otelcol }
+          resources: {{- include "platform.resources" (dict "Values" .Values "component" "gatewayCollector") | nindent 12 }}
+      volumes:
+        - name: config
+          configMap: { name: gateway-otelcol }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-otelcol
+  namespace: {{ .Values.namespace }}
+spec:
+  selector: { app: gateway-otelcol }
+  type: NodePort
+  ports:
+    - { name: otlp-grpc, port: 4317, targetPort: 4317, nodePort: 30317 }
+    - { name: otlp-http, port: 4318, targetPort: 4318, nodePort: 30318 }
+    - { name: metrics,   port: 8888, targetPort: 8888 }

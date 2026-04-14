@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: provisioner
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  GIT_TOKEN: {{ .Values.provisioner.gitToken | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: provisioner
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.provisioner.replicas }}
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: provisioner } }
+  template:
+    metadata: { labels: { app: provisioner } }
+    spec:
+      containers:
+        - name: provisioner
+          image: "{{ .Values.images.provisioner.repo }}:{{ .Values.images.provisioner.tag }}"
+          imagePullPolicy: {{ .Values.images.provisioner.pullPolicy }}
+          env:
+            - { name: ADDR,       value: ":8091" }
+            - { name: GIT_REPO,   value: {{ .Values.provisioner.gitRepo | quote }} }
+            - { name: GIT_BRANCH, value: {{ .Values.provisioner.gitBranch | quote }} }
+            - { name: GIT_PATH,   value: {{ .Values.provisioner.gitPath | quote }} }
+            - { name: GIT_AUTHOR, value: {{ .Values.provisioner.gitAuthor | quote }} }
+            - { name: GIT_EMAIL,  value: {{ .Values.provisioner.gitEmail | quote }} }
+          envFrom:
+            - secretRef: { name: provisioner }
+          ports: [{ containerPort: 8091 }]
+          volumeMounts:
+            - { name: workdir, mountPath: /var/lib/provisioner }
+          resources: {{- include "platform.resources" (dict "Values" .Values "component" "provisioner") | nindent 12 }}
+      volumes:
+        - name: workdir
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: provisioner
+  namespace: {{ .Values.namespace }}
+spec:
+  selector: { app: provisioner }
+  ports: [{ name: http, port: 8091, targetPort: 8091 }]

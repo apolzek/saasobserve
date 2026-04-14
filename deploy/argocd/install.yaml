@@ -1,0 +1,4 @@
+# Upstream ArgoCD is installed from the official manifest in bootstrap.sh.
+# This file exists to hold future overlay tweaks (e.g. disabling dex, tuning
+# reconcile timeouts). Keep it empty for now — the ApplicationSet in
+# gitops/tenants/applicationset.yaml is what actually provisions tenants.

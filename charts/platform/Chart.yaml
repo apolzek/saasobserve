@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform
+description: saasobserve control plane — API, UI, Postgres, gateway OTel collector, auth-webhook, provisioner
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

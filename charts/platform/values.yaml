@@ -1,0 +1,64 @@
+namespace: saasobserve-system
+
+images:
+  api:          { repo: "saasobserve/api",          tag: "dev", pullPolicy: IfNotPresent }
+  ui:           { repo: "saasobserve/ui",           tag: "dev", pullPolicy: IfNotPresent }
+  authWebhook:  { repo: "saasobserve/auth-webhook", tag: "dev", pullPolicy: IfNotPresent }
+  provisioner: { repo: "saasobserve/provisioner",   tag: "dev", pullPolicy: IfNotPresent }
+  postgres:    { repo: "postgres",                  tag: "16-alpine" }
+  otelcol:     { repo: "otel/opentelemetry-collector-contrib", tag: "0.111.0" }
+
+resources:
+  default:
+    requests: { cpu: "1",   memory: "1Gi" }
+    limits:   { cpu: "1",   memory: "1Gi" }
+  postgres:
+    requests: { cpu: "500m", memory: "512Mi" }
+    limits:   { cpu: "1",    memory: "1Gi" }
+
+postgres:
+  database: saasobserve
+  user: saasobserve
+  password: saasobserve
+  storage: 10Gi
+  storageClass: "standard"
+
+api:
+  replicas: 2
+  google:
+    # Override with a sealed secret in production.
+    clientId: ""
+    clientSecret: ""
+  publicBaseUrl: "http://localhost:3000"
+  grafanaBaseDomain: "grafana.saasobserve.local"
+  sessionSecret: "dev-insecure-change-me"
+
+ui:
+  replicas: 2
+
+authWebhook:
+  replicas: 2
+
+provisioner:
+  replicas: 1
+  # Git repo where tenant manifests are committed.
+  gitRepo:  "https://github.com/apolzek/saasobserve.git"
+  gitBranch: "main"
+  gitPath:   "gitops/tenants"
+  # Token used by provisioner to push. Provide as secret in production.
+  gitToken:  ""
+  gitAuthor: "saasobserve-provisioner"
+  gitEmail:  "bot@saasobserve.io"
+
+gatewayCollector:
+  replicas: 2
+  # Tenants that should have routing rules installed in the gateway.
+  # The provisioner rewrites this list by committing to
+  # gitops/tenants/gateway-tenants.yaml (which overrides this file via ArgoCD).
+  tenants: []
+    # - id: acme
+    #   endpoint: http://otelcol.tenant-acme.svc.cluster.local:4318
+
+ingress:
+  className: "nginx"
+  host: "otlp.saasobserve.local"

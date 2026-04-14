@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: saasobserve-tenants
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/apolzek/saasobserve.git
+        revision: main
+        directories:
+          - path: gitops/tenants/*
+          - path: gitops/tenants/gateway-tenants.yaml
+            exclude: true
+  template:
+    metadata:
+      name: 'tenant-{{path.basename}}'
+      labels:
+        saasobserve.io/tenant: '{{path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/apolzek/saasobserve.git
+        targetRevision: main
+        path: charts/tenant-stack
+        helm:
+          releaseName: 'tenant-{{path.basename}}'
+          valueFiles:
+            - ../../gitops/tenants/{{path.basename}}/values.yaml
+            - values-scale-test.yaml  # remove this line in production
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'tenant-{{path.basename}}'
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true

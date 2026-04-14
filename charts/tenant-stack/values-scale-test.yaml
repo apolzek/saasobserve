@@ -1,0 +1,21 @@
+# Reduced profile used by tests/load/scale-100-tenants.sh so that 100 tenant
+# stacks can fit on a single kind cluster. Do NOT use in production — the
+# limits here will throttle real workloads.
+
+resources:
+  default:
+    requests: { cpu: "50m",  memory: "96Mi" }
+    limits:   { cpu: "200m", memory: "256Mi" }
+  clickhouse:
+    requests: { cpu: "100m", memory: "192Mi" }
+    limits:   { cpu: "400m", memory: "512Mi" }
+
+storage:
+  storageClass: ""   # emptyDir — data is disposable during load tests
+  victoriametrics: "1Gi"
+  clickhouse: "1Gi"
+  grafana: "256Mi"
+
+grafana:
+  ingress:
+    enabled: false

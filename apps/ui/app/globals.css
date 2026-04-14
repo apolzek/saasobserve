@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body { background: #0a0b12; color: #e8eaf1; }
+
+.gradient-text {
+  background: linear-gradient(135deg, #7c9cff 0%, #c084fc 60%, #f472b6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card {
+  @apply bg-ink-900 border border-ink-700 rounded-xl;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition-colors;
+}
+.btn-primary { @apply bg-accent-500 text-white hover:bg-accent-600; }
+.btn-ghost   { @apply bg-ink-800 text-ink-100 border border-ink-700 hover:bg-ink-700; }

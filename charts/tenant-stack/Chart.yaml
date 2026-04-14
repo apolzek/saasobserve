@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tenant-stack
+description: Per-tenant observability stack (otelcol + VictoriaMetrics + ClickHouse + Grafana)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
