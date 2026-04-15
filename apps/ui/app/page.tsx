@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LiveDash from "./components/LiveDash";
 
 export default function Landing() {
   return (
@@ -32,18 +33,27 @@ export default function Landing() {
         <div className="absolute right-1/4 top-32 spark animate-sparkle" style={{ animationDelay: "0.6s" }} />
 
         <p className="pixel text-[10px] tracking-[0.4em] text-mario-yellow mb-6">
-          ◆ PRESS START — OBSERVABILITY QUEST ◆
+          ◆ OBSERVABILITY SAAS · METRICS · LOGS · TRACES ◆
         </p>
         <h1 className="pixel text-4xl md:text-6xl leading-[1.1] title-gradient">
-          YOUR DATA.<br />
-          YOUR GRAFANA.<br />
-          <span className="text-mario-yellow" style={{ WebkitTextStroke: "2px #000" }}>POWER UP.</span>
+          METRICS.<br />
+          LOGS.<br />
+          <span className="text-neon-cyan" style={{ WebkitTextStroke: "2px #000" }}>TRACES.</span>
+          <span className="block mt-2 text-mario-yellow" style={{ WebkitTextStroke: "2px #000" }}>POWER UP.</span>
         </h1>
         <p className="display text-2xl text-ink-100/90 max-w-2xl mx-auto mt-8">
-          Ship OTLP to one endpoint. Land in your own namespace with
-          VictoriaMetrics, ClickHouse and a Grafana that belongs to <i>you</i>.
-          No shared tenants. No noisy neighbours. 1-Up your stack.
+          Ship OTLP to one gateway. Land in your own namespace with
+          <span className="text-neon-cyan"> VictoriaMetrics</span>,
+          <span className="text-neon-pink"> ClickHouse</span> and a
+          <span className="text-mario-yellow"> Grafana</span> that belongs to <i>you</i>.
+          Dedicated dashboards, hard tenant isolation, GitOps-provisioned.
         </p>
+        <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+          <Badge color="neon-cyan"   label="prometheus remote_write" />
+          <Badge color="neon-pink"   label="otlp/grpc + http" />
+          <Badge color="mario-yellow" label="loki-compatible logs" />
+          <Badge color="mario-green"  label="tempo-style traces" />
+        </div>
 
         <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
           <Link href="/login" className="btn btn-red">▶ PLAYER 1 — Start</Link>
@@ -55,6 +65,17 @@ export default function Landing() {
           /{" "}
           <code className="pixel text-[10px] text-mario-yellow">saasobserve</code>
         </p>
+      </section>
+
+      {/* live dashboard preview */}
+      <section className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="text-center mb-6">
+          <p className="pixel text-[10px] text-mario-yellow mb-3">▼ LIVE FROM THE DEMO TENANT ▼</p>
+          <p className="display text-xl text-ink-200">
+            this is exactly what your Grafana would be graphing — in your own namespace.
+          </p>
+        </div>
+        <LiveDash />
       </section>
 
       {/* power-up grid */}
@@ -122,6 +143,20 @@ const STEPS: [string, string, string][] = [
   ["3", "SHIP OTLP", "Any SDK. Header: X-Tenant-Key: sk_live_…"],
   ["4", "OPEN GRAFANA", "Dedicated instance in your tenant namespace."],
 ];
+
+function Badge({ color, label }: { color: "neon-cyan" | "neon-pink" | "mario-yellow" | "mario-green"; label: string }) {
+  const cls = {
+    "neon-cyan":    "text-neon-cyan",
+    "neon-pink":    "text-neon-pink",
+    "mario-yellow": "text-mario-yellow",
+    "mario-green":  "text-mario-green",
+  }[color];
+  return (
+    <span className={`pixel text-[8px] px-3 py-2 border-[3px] border-black shadow-[2px_2px_0_#000] bg-ink-900 ${cls}`}>
+      {label}
+    </span>
+  );
+}
 
 function Clouds() {
   return (
