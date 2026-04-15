@@ -41,6 +41,10 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := seedDefaults(ctx, store); err != nil {
+		log.Warn("seed defaults", "err", err)
+	}
+
 	oidc, err := auth.NewGoogle(ctx, cfg)
 	if err != nil {
 		log.Error("oidc", "err", err)

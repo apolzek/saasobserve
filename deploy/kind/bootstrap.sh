@@ -20,7 +20,7 @@ kubectl -n ingress-nginx wait --for=condition=ready pod -l app.kubernetes.io/com
 
 echo "==> ArgoCD"
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl apply -n argocd --server-side=true -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 kubectl -n argocd wait --for=condition=available deploy/argocd-server --timeout=300s || true
 
 echo "==> build & load images"

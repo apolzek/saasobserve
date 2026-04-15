@@ -2,14 +2,14 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "saasobserve — open observability cloud",
-  description: "OpenTelemetry-native metrics, logs, and traces. Per-tenant Grafana. Self-hostable.",
+  title: "SAASOBSERVE — PLAYER 1 READY",
+  description: "Start your observability quest. OpenTelemetry → per-tenant Grafana. Power up.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased min-h-screen">{children}</body>
+      <body className="crt min-h-screen antialiased">{children}</body>
     </html>
   );
 }

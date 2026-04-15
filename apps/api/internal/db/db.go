@@ -35,12 +35,18 @@ func (s *Store) Close() { s.pool.Close() }
 const schema = `
 CREATE TABLE IF NOT EXISTS users (
   id            UUID PRIMARY KEY,
-  google_sub    TEXT UNIQUE NOT NULL,
-  email         TEXT NOT NULL,
+  google_sub    TEXT UNIQUE,
+  email         TEXT UNIQUE NOT NULL,
+  password_hash TEXT,
   name          TEXT NOT NULL,
   picture       TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE users ALTER COLUMN google_sub DROP NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+DO $$ BEGIN
+  ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email);
+EXCEPTION WHEN duplicate_table OR duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS tenants (
   id            TEXT PRIMARY KEY,
@@ -77,12 +83,13 @@ func (s *Store) Migrate(ctx context.Context) error {
 // users
 
 type User struct {
-	ID        uuid.UUID
-	GoogleSub string
-	Email     string
-	Name      string
-	Picture   string
-	CreatedAt time.Time
+	ID           uuid.UUID
+	GoogleSub    string
+	Email        string
+	PasswordHash string
+	Name         string
+	Picture      string
+	CreatedAt    time.Time
 }
 
 func (s *Store) UpsertGoogleUser(ctx context.Context, sub, email, name, picture string) (*User, error) {
@@ -91,20 +98,44 @@ func (s *Store) UpsertGoogleUser(ctx context.Context, sub, email, name, picture 
 		INSERT INTO users (id, google_sub, email, name, picture)
 		VALUES ($1, $2, $3, $4, $5)
 		ON CONFLICT (google_sub) DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name, picture=EXCLUDED.picture
-		RETURNING id, google_sub, email, name, COALESCE(picture,''), created_at
+		RETURNING id, COALESCE(google_sub,''), email, COALESCE(password_hash,''), name, COALESCE(picture,''), created_at
 	`, uuid.New(), sub, email, name, picture).
-		Scan(&u.ID, &u.GoogleSub, &u.Email, &u.Name, &u.Picture, &u.CreatedAt)
+		Scan(&u.ID, &u.GoogleSub, &u.Email, &u.PasswordHash, &u.Name, &u.Picture, &u.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return u, nil
 }
 
+// CreateEmailUser inserts a new user authenticated with email+password.
+// Returns pgx.ErrNoRows-equivalent if the email is already taken.
+func (s *Store) CreateEmailUser(ctx context.Context, email, passwordHash, name string) (*User, error) {
+	u := &User{}
+	err := s.pool.QueryRow(ctx, `
+		INSERT INTO users (id, email, password_hash, name)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, COALESCE(google_sub,''), email, password_hash, name, COALESCE(picture,''), created_at
+	`, uuid.New(), email, passwordHash, name).
+		Scan(&u.ID, &u.GoogleSub, &u.Email, &u.PasswordHash, &u.Name, &u.Picture, &u.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+func (s *Store) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	u := &User{}
+	err := s.pool.QueryRow(ctx,
+		`SELECT id, COALESCE(google_sub,''), email, COALESCE(password_hash,''), name, COALESCE(picture,''), created_at FROM users WHERE email=$1`, email).
+		Scan(&u.ID, &u.GoogleSub, &u.Email, &u.PasswordHash, &u.Name, &u.Picture, &u.CreatedAt)
+	return u, err
+}
+
 func (s *Store) GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
 	u := &User{}
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, google_sub, email, name, COALESCE(picture,''), created_at FROM users WHERE id=$1`, id).
-		Scan(&u.ID, &u.GoogleSub, &u.Email, &u.Name, &u.Picture, &u.CreatedAt)
+		`SELECT id, COALESCE(google_sub,''), email, COALESCE(password_hash,''), name, COALESCE(picture,''), created_at FROM users WHERE id=$1`, id).
+		Scan(&u.ID, &u.GoogleSub, &u.Email, &u.PasswordHash, &u.Name, &u.Picture, &u.CreatedAt)
 	return u, err
 }
 

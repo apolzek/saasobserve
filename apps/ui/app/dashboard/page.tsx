@@ -1,39 +1,38 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Me = { id: string; email: string; name: string; picture: string; tenant: string; grafanaUrl: string };
-type KeyRow = { id: string; label: string; prefix: string; masked: string; createdAt: string };
+type Me  = { id: string; email: string; name: string; picture: string; tenant: string; grafanaUrl: string };
+type Key = { id: string; label: string; prefix: string; masked: string; createdAt: string };
 
 const api = (p: string) => `/api/proxy${p}`;
 
 export default function Dashboard() {
-  const [me, setMe] = useState<Me | null>(null);
-  const [keys, setKeys] = useState<KeyRow[]>([]);
+  const [me, setMe]       = useState<Me | null>(null);
+  const [keys, setKeys]   = useState<Key[]>([]);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   async function load() {
-    const meRes = await fetch(api("/api/me"), { credentials: "include" });
-    if (meRes.status === 401) { window.location.href = "/login"; return; }
-    setMe(await meRes.json());
+    const r = await fetch(api("/api/me"), { credentials: "include" });
+    if (r.status === 401) { window.location.href = "/login"; return; }
+    setMe(await r.json());
     const ks = await fetch(api("/api/keys"), { credentials: "include" });
     setKeys(await ks.json());
   }
   useEffect(() => { load(); }, []);
 
   async function createKey() {
-    const label = prompt("Label for this key?", "default") || "default";
+    const label = prompt("Name for this power-up?", "default") || "default";
     const r = await fetch(api("/api/keys"), {
       method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ label }),
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }),
     });
     const j = await r.json();
     setNewKey(j.key);
     await load();
   }
   async function deleteKey(id: string) {
-    if (!confirm("Revoke this key? Anything using it will start failing.")) return;
+    if (!confirm("GAME OVER this key? any client using it will fail.")) return;
     await fetch(api(`/api/keys/${id}`), { method: "DELETE", credentials: "include" });
     await load();
   }
@@ -42,52 +41,71 @@ export default function Dashboard() {
     window.location.href = "/";
   }
 
-  if (!me) return <main className="p-10 text-ink-100/70">Loading…</main>;
+  if (!me) return <main className="p-10 pixel text-[10px] text-mario-yellow">LOADING…</main>;
+
+  const tenant = me.tenant || "provisioning";
 
   return (
     <main className="min-h-screen">
-      <nav className="border-b border-ink-800">
+      <nav className="border-b-[3px] border-black bg-ink-900">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-gradient-to-br from-accent-400 to-fuchsia-500" />
-            <span className="font-semibold">saasobserve</span>
+          <div className="flex items-center gap-3">
+            <div className="qmark-block w-9 h-9 grid place-items-center">
+              <span className="pixel text-[12px] text-black">?</span>
+            </div>
+            <span className="pixel text-[12px] text-white">SAASOBSERVE</span>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            {me.picture && <img src={me.picture} alt="" className="w-8 h-8 rounded-full" />}
-            <span className="text-ink-100/70">{me.email}</span>
-            <button onClick={logout} className="btn btn-ghost text-xs">logout</button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {me.picture
+                ? <img src={me.picture} alt="" className="w-8 h-8 border-[3px] border-black" />
+                : <div className="w-8 h-8 bg-mario-red border-[3px] border-black" />}
+              <div>
+                <div className="pixel text-[9px] text-white">{me.name || "PLAYER 1"}</div>
+                <div className="display text-sm text-ink-200 leading-none">{me.email}</div>
+              </div>
+            </div>
+            <button onClick={logout} className="btn btn-ghost" style={{ padding: "0.5rem 0.8rem" }}>
+              LOGOUT
+            </button>
           </div>
         </div>
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-10 space-y-8">
-        <header className="flex items-end justify-between flex-wrap gap-4">
+        {/* HUD */}
+        <header className="card p-6 flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">Welcome, {me.name.split(" ")[0]}</h1>
-            <p className="text-ink-100/70">
-              Tenant <code className="text-accent-400">{me.tenant || "(provisioning…)"}</code>
-            </p>
+            <div className="pixel text-[9px] text-mario-yellow mb-2">WORLD</div>
+            <div className="pixel text-lg text-white drop-shadow-[2px_2px_0_#000]">
+              TENANT · {tenant.toUpperCase()}
+            </div>
+            <div className="display text-xl text-ink-200 mt-2">
+              lives <span className="text-mario-red">♥♥♥</span> · coins{" "}
+              <span className="text-mario-yellow">{keys.length * 100}</span> · level 1-1
+            </div>
           </div>
           {me.grafanaUrl && (
-            <a href={me.grafanaUrl} target="_blank" rel="noreferrer" className="btn btn-primary">
-              Open my Grafana ↗
+            <a href={me.grafanaUrl} target="_blank" rel="noreferrer" className="btn btn-green">
+              ★ OPEN MY GRAFANA
             </a>
           )}
         </header>
 
+        {/* quick start */}
         <section className="card p-6">
-          <h2 className="font-semibold mb-1">Send telemetry</h2>
-          <p className="text-sm text-ink-100/70 mb-4">
-            Point any OpenTelemetry SDK or Collector at the gateway and set <code>X-Tenant-Key</code>.
+          <div className="pixel text-[11px] text-white mb-3">🔥 SHIP TELEMETRY</div>
+          <p className="display text-lg text-ink-200 mb-4">
+            point any OpenTelemetry SDK or collector at the gateway with your X-Tenant-Key header.
           </p>
-          <pre className="bg-ink-950 border border-ink-800 rounded-lg p-4 text-xs overflow-x-auto">
+          <pre className="bg-ink-950 border-[3px] border-black p-4 text-xs overflow-x-auto display leading-relaxed">
 {`# OTLP HTTP
 curl https://otlp.saasobserve.io/v1/metrics \\
   -H "X-Tenant-Key: sk_live_..." \\
   -H "Content-Type: application/json" \\
   --data-binary @metrics.json
 
-# OTel Collector exporter
+# OpenTelemetry Collector exporter
 exporters:
   otlphttp:
     endpoint: https://otlp.saasobserve.io
@@ -96,44 +114,50 @@ exporters:
           </pre>
         </section>
 
+        {/* api keys */}
         <section className="card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold">API keys</h2>
-            <button onClick={createKey} className="btn btn-primary text-sm">+ Create key</button>
+            <div className="pixel text-[11px] text-white">🔑 POWER-UP KEYS</div>
+            <button onClick={createKey} className="btn btn-yellow">+ NEW KEY</button>
           </div>
 
           {newKey && (
-            <div className="mb-4 border border-accent-500/40 bg-accent-500/10 rounded-lg p-4">
-              <p className="text-xs text-accent-400 uppercase tracking-wide mb-1">Copy this now — it won't be shown again</p>
+            <div className="mb-5 border-[3px] border-black bg-mario-yellow p-4 text-black">
+              <div className="pixel text-[9px] mb-2">⚠ COPY NOW — WON'T SHOW AGAIN</div>
               <div className="flex items-center gap-2">
-                <code className="font-mono text-sm break-all">{newKey}</code>
+                <code className="display text-xl break-all flex-1">{newKey}</code>
                 <button
-                  className="btn btn-ghost text-xs"
+                  className="btn btn-red"
+                  style={{ padding: "0.45rem 0.7rem" }}
                   onClick={() => { navigator.clipboard.writeText(newKey); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
-                  {copied ? "copied" : "copy"}
+                  {copied ? "✔ COPIED" : "COPY"}
                 </button>
               </div>
             </div>
           )}
 
-          <table className="w-full text-sm">
-            <thead className="text-left text-ink-100/50 text-xs uppercase">
-              <tr><th className="py-2">Label</th><th>Key</th><th>Created</th><th></th></tr>
-            </thead>
-            <tbody>
-              {keys.length === 0 && (
-                <tr><td colSpan={4} className="py-6 text-ink-100/50 text-center">No keys yet.</td></tr>
-              )}
-              {keys.map((k) => (
-                <tr key={k.id} className="border-t border-ink-800">
-                  <td className="py-3">{k.label}</td>
-                  <td className="font-mono text-xs">{k.masked}</td>
-                  <td className="text-ink-100/60">{new Date(k.createdAt).toLocaleDateString()}</td>
-                  <td className="text-right"><button onClick={() => deleteKey(k.id)} className="text-red-400 hover:text-red-300 text-xs">revoke</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-3">
+            {keys.length === 0 && (
+              <div className="display text-xl text-ink-200 text-center py-6">
+                no keys yet — press <span className="text-mario-yellow">+ NEW KEY</span>
+              </div>
+            )}
+            {keys.map((k) => (
+              <div key={k.id} className="flex items-center gap-4 border-[3px] border-black bg-ink-800 p-4">
+                <div className="coin animate-bob" />
+                <div className="flex-1 min-w-0">
+                  <div className="pixel text-[10px] text-white truncate">{k.label.toUpperCase()}</div>
+                  <div className="display text-lg text-ink-200 truncate">{k.masked}</div>
+                </div>
+                <div className="display text-sm text-ink-200">
+                  {new Date(k.createdAt).toLocaleDateString()}
+                </div>
+                <button onClick={() => deleteKey(k.id)} className="btn btn-red" style={{ padding: "0.4rem 0.6rem" }}>
+                  REVOKE
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
     </main>

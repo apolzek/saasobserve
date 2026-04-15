@@ -16,6 +16,8 @@ spec:
           env:
             - { name: API_URL, value: "http://api.{{ .Values.namespace }}.svc.cluster.local:8080" }
             - { name: NEXT_PUBLIC_API_URL, value: "/api/proxy" }
+            - { name: HOSTNAME, value: "0.0.0.0" }
+            - { name: PORT,     value: "3000" }
           ports: [{ containerPort: 3000 }]
           resources: {{- include "platform.resources" (dict "Values" .Values "component" "ui") | nindent 12 }}
 ---

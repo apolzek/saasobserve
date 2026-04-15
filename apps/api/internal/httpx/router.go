@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
+
 type server struct {
 	cfg     *config.Config
 	store   *db.Store
@@ -31,6 +32,8 @@ func NewRouter(cfg *config.Config, store *db.Store, g *auth.Google, t *tenant.Se
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	mux.HandleFunc("GET /api/auth/google/start", s.authStart)
 	mux.HandleFunc("GET /api/auth/google/callback", s.authCallback)
+	mux.HandleFunc("POST /api/auth/signup", s.signup)
+	mux.HandleFunc("POST /api/auth/login", s.login)
 	mux.HandleFunc("POST /api/auth/logout", s.logout)
 
 	mux.HandleFunc("GET /api/me", s.authed(s.me))
@@ -93,6 +96,65 @@ func (s *server) authCallback(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode, MaxAge: 7 * 24 * 3600,
 	})
 	http.Redirect(w, r, s.cfg.PublicBaseURL+"/dashboard", http.StatusFound)
+}
+
+// signup creates a new email/password user, immediately logs them in, and
+// makes sure a tenant exists for them.
+func (s *server) signup(w http.ResponseWriter, r *http.Request) {
+	var body struct{ Email, Password, Name string }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad body", http.StatusBadRequest)
+		return
+	}
+	if len(body.Password) < 6 || body.Email == "" {
+		http.Error(w, "email and password (≥6 chars) required", http.StatusBadRequest)
+		return
+	}
+	if body.Name == "" {
+		body.Name = body.Email
+	}
+	hash, err := auth.HashPassword(body.Password)
+	if err != nil {
+		http.Error(w, "hash failed", http.StatusInternalServerError)
+		return
+	}
+	u, err := s.store.CreateEmailUser(r.Context(), body.Email, hash, body.Name)
+	if err != nil {
+		http.Error(w, "email already registered", http.StatusConflict)
+		return
+	}
+	if _, err := s.tenants.EnsureTenantForUser(r.Context(), u); err != nil {
+		slog.Warn("tenant ensure", "err", err)
+	}
+	s.issueSession(w, r, u)
+	writeJSON(w, http.StatusCreated, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name})
+}
+
+func (s *server) login(w http.ResponseWriter, r *http.Request) {
+	var body struct{ Email, Password string }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad body", http.StatusBadRequest)
+		return
+	}
+	u, err := s.store.GetUserByEmail(r.Context(), body.Email)
+	if err != nil || u.PasswordHash == "" || !auth.CheckPassword(u.PasswordHash, body.Password) {
+		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+		return
+	}
+	s.issueSession(w, r, u)
+	writeJSON(w, http.StatusOK, map[string]any{"id": u.ID, "email": u.Email, "name": u.Name})
+}
+
+func (s *server) issueSession(w http.ResponseWriter, r *http.Request, u *db.User) {
+	token := randHex(32)
+	if err := s.store.CreateSession(r.Context(), token, u.ID, 7*24*time.Hour); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name: sessionCookie, Value: token, Path: "/", HttpOnly: true,
+		SameSite: http.SameSiteLaxMode, MaxAge: 7 * 24 * 3600,
+	})
 }
 
 func (s *server) logout(w http.ResponseWriter, r *http.Request) {

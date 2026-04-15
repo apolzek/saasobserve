@@ -2,21 +2,145 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body { background: #0a0b12; color: #e8eaf1; }
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap");
 
-.gradient-text {
-  background: linear-gradient(135deg, #7c9cff 0%, #c084fc 60%, #f472b6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+:root {
+  color-scheme: dark;
 }
 
-.card {
-  @apply bg-ink-900 border border-ink-700 rounded-xl;
+html, body {
+  background: #04050a;
+  color: #f4f5fb;
+  image-rendering: pixelated;
 }
 
+body {
+  font-family: "VT323", monospace;
+  font-size: 18px;
+  background-image:
+    radial-gradient(1200px 600px at 50% -20%, rgba(4,156,216,0.25), transparent 60%),
+    radial-gradient(900px 500px at 10% 100%, rgba(229,37,33,0.18), transparent 60%),
+    radial-gradient(800px 500px at 100% 80%, rgba(155,48,255,0.22), transparent 60%);
+}
+
+/* CRT scanline overlay — subtle, toggleable via .crt */
+.crt::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.03) 0px,
+    rgba(255,255,255,0.03) 1px,
+    transparent 2px,
+    transparent 4px
+  );
+  z-index: 50;
+  mix-blend-mode: overlay;
+}
+
+.pixel       { font-family: "Press Start 2P", monospace; letter-spacing: 0.02em; }
+.display     { font-family: "VT323", monospace; }
+
+/* ------- pixel-art style blocks ------- */
+.brick {
+  background:
+    linear-gradient(#C05C18, #8B3F0C) padding-box,
+    #000 border-box;
+  border: 3px solid #000;
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,0.5), 4px 4px 0 0 #000;
+}
+
+.qmark-block {
+  background:
+    repeating-linear-gradient(45deg, #FBD000 0 8px, #E8B900 8px 16px) padding-box;
+  border: 3px solid #000;
+  box-shadow: inset 0 -4px 0 #8a6b00, 4px 4px 0 0 #000;
+}
+
+.pipe {
+  background: linear-gradient(#7CFFA4, #00A651 45%, #006B34);
+  border: 3px solid #000;
+  border-radius: 10px 10px 0 0;
+  box-shadow: inset 6px 0 0 rgba(255,255,255,0.2), inset -6px 0 0 rgba(0,0,0,0.25), 4px 4px 0 0 #000;
+}
+
+/* ------- buttons ------- */
 .btn {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition-colors;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.2rem;
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 0 #000;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
+  cursor: pointer;
+  user-select: none;
 }
-.btn-primary { @apply bg-accent-500 text-white hover:bg-accent-600; }
-.btn-ghost   { @apply bg-ink-800 text-ink-100 border border-ink-700 hover:bg-ink-700; }
+.btn:hover  { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 0 #000; filter: brightness(1.08); }
+.btn:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 0 #000; }
+
+.btn-red    { background: #E52521; color: #fff; }
+.btn-blue   { background: #049CD8; color: #fff; }
+.btn-green  { background: #43B047; color: #fff; }
+.btn-yellow { background: #FBD000; color: #3a2a00; }
+.btn-ghost  { background: #10131f; color: #f4f5fb; }
+
+/* ------- card / power-up ------- */
+.card {
+  background: #10131f;
+  border: 3px solid #000;
+  box-shadow: 6px 6px 0 0 #000;
+  position: relative;
+}
+.card-glow::after {
+  content: "";
+  position: absolute; inset: -2px;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, #00F5FF, #9B30FF, #FF3DA5) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+/* ------- star sparkle dot ------- */
+.spark {
+  width: 6px; height: 6px;
+  background: #FBD000;
+  box-shadow: 6px 0 0 #FBD000, -6px 0 0 #FBD000, 0 6px 0 #FBD000, 0 -6px 0 #FBD000;
+}
+
+/* ------- coin (animated) ------- */
+.coin {
+  width: 26px; height: 26px;
+  background:
+    radial-gradient(circle at 35% 35%, #FFF7B2 0 18%, #F7C924 19% 60%, #B07A00 61% 100%);
+  border: 2px solid #000;
+  border-radius: 50%;
+}
+
+/* ------- gradient title ------- */
+.title-gradient {
+  background: linear-gradient(180deg, #FFF 0%, #FBD000 40%, #E52521 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 2px #000;
+  filter: drop-shadow(4px 4px 0 #000);
+}
+
+/* ------- subtle ground ------- */
+.ground {
+  background:
+    repeating-linear-gradient(90deg, #7a4a0f 0 14px, #5d380a 14px 28px);
+  border-top: 3px solid #000;
+  box-shadow: inset 0 4px 0 rgba(255,255,255,0.1);
+}

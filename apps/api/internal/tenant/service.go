@@ -31,6 +31,16 @@ func NewService(s *db.Store, provisionerURL string) *Service {
 // Tenant creation
 
 func (s *Service) EnsureTenantForUser(ctx context.Context, u *db.User) (*db.Tenant, error) {
+	return s.ensureTenantWithID(ctx, u, slugFromEmail(u.Email)+"-"+shortID(4))
+}
+
+// EnsureTenantWithFixedID is used by the default-admin seed so the tenant id
+// stays deterministic across restarts.
+func (s *Service) EnsureTenantWithFixedID(ctx context.Context, u *db.User, id string) (*db.Tenant, error) {
+	return s.ensureTenantWithID(ctx, u, id)
+}
+
+func (s *Service) ensureTenantWithID(ctx context.Context, u *db.User, id string) (*db.Tenant, error) {
 	existing, err := s.store.ListTenantsByOwner(ctx, u.ID)
 	if err != nil {
 		return nil, err
@@ -39,7 +49,6 @@ func (s *Service) EnsureTenantForUser(ctx context.Context, u *db.User) (*db.Tena
 		t := existing[0]
 		return &t, nil
 	}
-	id := slugFromEmail(u.Email) + "-" + shortID(4)
 	t := &db.Tenant{
 		ID:          id,
 		OwnerID:     u.ID,
@@ -49,9 +58,33 @@ func (s *Service) EnsureTenantForUser(ctx context.Context, u *db.User) (*db.Tena
 	if err := s.store.CreateTenant(ctx, t); err != nil {
 		return nil, err
 	}
-	// Fire-and-forget provisioning call so signup stays snappy.
 	go s.notifyProvisioner(t)
 	return t, nil
+}
+
+// CreateAPIKeyWithPlain lets callers (seed path) inject a known plain key so
+// that a default credential can be surfaced in docs. If plain is empty, a
+// fresh random key is generated like CreateAPIKey.
+func (s *Service) CreateAPIKeyWithPlain(ctx context.Context, tenantID, label, plain string) (*KeyCreation, error) {
+	if plain == "" {
+		return s.CreateAPIKey(ctx, tenantID, label)
+	}
+	parts := strings.SplitN(plain, "_", 4)
+	if len(parts) != 4 || parts[0] != "sk" {
+		return nil, errors.New("invalid fixed key format")
+	}
+	prefix := parts[2]
+	k := &db.APIKey{
+		ID:       uuid.New(),
+		TenantID: tenantID,
+		Prefix:   prefix,
+		Hash:     sha256Hex(plain),
+		Label:    label,
+	}
+	if err := s.store.CreateAPIKey(ctx, k); err != nil {
+		return nil, err
+	}
+	return &KeyCreation{ID: k.ID, Plain: plain, Prefix: prefix, Label: label}, nil
 }
 
 func (s *Service) notifyProvisioner(t *db.Tenant) {

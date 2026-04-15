@@ -2,78 +2,145 @@ import Link from "next/link";
 
 export default function Landing() {
   return (
-    <main className="relative">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(60%_60%_at_50%_0%,rgba(124,156,255,0.18),transparent)]" />
+    <main className="relative overflow-hidden">
+      {/* sky + clouds marquee */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[55vh] -z-10
+                      bg-gradient-to-b from-mario-sky via-mario-blue/60 to-transparent" />
+      <Clouds />
 
       <nav className="max-w-6xl mx-auto flex items-center justify-between px-6 py-5">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-accent-400 to-fuchsia-500" />
-          <span className="font-semibold">saasobserve</span>
+        <div className="flex items-center gap-3">
+          <div className="qmark-block w-10 h-10 grid place-items-center">
+            <span className="pixel text-[14px] text-black">?</span>
+          </div>
+          <span className="pixel text-sm text-white drop-shadow-[2px_2px_0_#000]">SAASOBSERVE</span>
         </div>
-        <div className="flex items-center gap-3 text-sm">
-          <a className="text-ink-100/70 hover:text-white" href="#features">features</a>
-          <a className="text-ink-100/70 hover:text-white" href="#pricing">pricing</a>
-          <a className="text-ink-100/70 hover:text-white" href="https://github.com/apolzek/saasobserve">github</a>
-          <Link href="/login" className="btn btn-ghost">sign in</Link>
+        <div className="flex items-center gap-3">
+          <a className="pixel text-[10px] text-white/80 hover:text-mario-yellow" href="#world">WORLD 1-1</a>
+          <a className="pixel text-[10px] text-white/80 hover:text-mario-yellow" href="#items">ITEMS</a>
+          <a className="pixel text-[10px] text-white/80 hover:text-mario-yellow"
+             href="https://github.com/apolzek/saasobserve">GITHUB</a>
+          <Link href="/login" className="btn btn-yellow">START</Link>
         </div>
       </nav>
 
-      <section className="max-w-6xl mx-auto px-6 pt-20 pb-28 text-center">
-        <p className="text-sm uppercase tracking-[0.2em] text-accent-400 mb-4">open observability cloud</p>
-        <h1 className="text-5xl md:text-7xl font-semibold tracking-tight leading-[1.05]">
-          Your data.<br />
-          <span className="gradient-text">Your Grafana.</span><br />
-          OpenTelemetry native.
-        </h1>
-        <p className="mt-6 text-lg text-ink-100/70 max-w-2xl mx-auto">
-          Ship OTLP to a single endpoint. Get metrics, logs, and traces in a Grafana that
-          belongs to you — running in an isolated tenant namespace with VictoriaMetrics
-          and ClickHouse behind it.
+      <section className="max-w-6xl mx-auto px-6 pt-10 pb-24 text-center relative">
+        {/* floating coins */}
+        <div className="absolute left-10 top-10 coin animate-bob" />
+        <div className="absolute right-16 top-24 coin animate-bob" style={{ animationDelay: "0.3s" }} />
+        <div className="absolute left-1/4 top-40 spark animate-sparkle" />
+        <div className="absolute right-1/4 top-32 spark animate-sparkle" style={{ animationDelay: "0.6s" }} />
+
+        <p className="pixel text-[10px] tracking-[0.4em] text-mario-yellow mb-6">
+          ◆ PRESS START — OBSERVABILITY QUEST ◆
         </p>
-        <div className="mt-10 flex items-center justify-center gap-3">
-          <Link href="/login" className="btn btn-primary">Start free with Google</Link>
-          <a href="#how" className="btn btn-ghost">How it works</a>
+        <h1 className="pixel text-4xl md:text-6xl leading-[1.1] title-gradient">
+          YOUR DATA.<br />
+          YOUR GRAFANA.<br />
+          <span className="text-mario-yellow" style={{ WebkitTextStroke: "2px #000" }}>POWER UP.</span>
+        </h1>
+        <p className="display text-2xl text-ink-100/90 max-w-2xl mx-auto mt-8">
+          Ship OTLP to one endpoint. Land in your own namespace with
+          VictoriaMetrics, ClickHouse and a Grafana that belongs to <i>you</i>.
+          No shared tenants. No noisy neighbours. 1-Up your stack.
+        </p>
+
+        <div className="mt-10 flex items-center justify-center gap-4 flex-wrap">
+          <Link href="/login" className="btn btn-red">▶ PLAYER 1 — Start</Link>
+          <a href="#world" className="btn btn-ghost">? how it works</a>
         </div>
-        <p className="mt-4 text-xs text-ink-100/50">no credit card · your data stays in your tenant</p>
+        <p className="mt-6 display text-ink-200 text-lg">
+          default credentials ready ·{" "}
+          <code className="pixel text-[10px] text-mario-yellow">admin@saasobserve.io</code>{" "}
+          /{" "}
+          <code className="pixel text-[10px] text-mario-yellow">saasobserve</code>
+        </p>
       </section>
 
-      <section id="features" className="max-w-6xl mx-auto px-6 pb-24 grid md:grid-cols-3 gap-4">
-        {[
-          { t: "Single OTLP endpoint", b: "Point any OTel SDK or Collector at our gateway with your API key. We route your data to your tenant automatically." },
-          { t: "Isolated per tenant", b: "Each customer gets its own namespace, collector, VictoriaMetrics, ClickHouse, and Grafana. No noisy neighbours." },
-          { t: "GitOps-native", b: "Tenants are provisioned by committing to a Git repo. ArgoCD picks it up. Every change is reviewable and reversible." },
-          { t: "Scale-tested to 100+", b: "Load-tested harness spins up 100 tenants and hammers the gateway with k6 to validate ingestion under real pressure." },
-          { t: "Bring your own dashboards", b: "Your Grafana, your dashboards, your users. We just keep it running and pointed at the right datasources." },
-          { t: "Open source", b: "Apache 2.0. Self-host it yourself or use our managed tier. No proprietary lock-in on your telemetry." },
-        ].map((f) => (
-          <div key={f.t} className="card p-6">
-            <h3 className="font-semibold mb-2">{f.t}</h3>
-            <p className="text-sm text-ink-100/70">{f.b}</p>
-          </div>
-        ))}
+      {/* power-up grid */}
+      <section id="items" className="max-w-6xl mx-auto px-6 pb-20">
+        <h2 className="pixel text-[14px] text-mario-yellow mb-8 drop-shadow-[2px_2px_0_#000]">
+          ⭐ POWER-UPS
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {POWERUPS.map((p) => (
+            <article key={p.title} className="card card-glow p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 grid place-items-center text-xl ${p.bg}`}>{p.icon}</div>
+                <h3 className="pixel text-[11px] text-white">{p.title}</h3>
+              </div>
+              <p className="display text-lg text-ink-200 leading-snug">{p.body}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section id="how" className="max-w-6xl mx-auto px-6 pb-24">
-        <h2 className="text-3xl font-semibold mb-8">How it works</h2>
-        <ol className="grid md:grid-cols-4 gap-4">
-          {[
-            ["1", "Sign up with Google", "Your Google sub becomes your stable tenant identifier."],
-            ["2", "Copy your API key", "Generated on first login, hashed at rest, shown once."],
-            ["3", "Ship OTLP", "Any SDK or Collector. Header: X-Tenant-Key: sk_live_…"],
-            ["4", "Open your Grafana", "Dedicated instance in your tenant namespace, already wired up."],
-          ].map(([n, t, b]) => (
-            <li key={t} className="card p-6">
-              <div className="text-accent-400 font-mono text-sm mb-2">step {n}</div>
-              <div className="font-semibold mb-1">{t}</div>
-              <div className="text-sm text-ink-100/70">{b}</div>
+      {/* world 1-1 steps */}
+      <section id="world" className="max-w-6xl mx-auto px-6 pb-24">
+        <h2 className="pixel text-[14px] text-mario-yellow mb-8 drop-shadow-[2px_2px_0_#000]">
+          🏰 WORLD 1-1 — HOW IT WORKS
+        </h2>
+        <ol className="grid md:grid-cols-4 gap-5">
+          {STEPS.map(([n, t, b]) => (
+            <li key={t} className="card p-5">
+              <div className="pixel text-[10px] text-mario-yellow mb-2">STEP {n}</div>
+              <div className="pixel text-[11px] text-white mb-2">{t}</div>
+              <div className="display text-lg text-ink-200">{b}</div>
             </li>
           ))}
         </ol>
       </section>
 
-      <footer className="border-t border-ink-800 py-8 text-center text-sm text-ink-100/50">
-        saasobserve · Apache 2.0 · built on OpenTelemetry, VictoriaMetrics, ClickHouse, Grafana
+      {/* ground + pipe decoration */}
+      <section className="relative">
+        <div className="absolute right-10 bottom-20 flex items-end gap-6">
+          <div className="pipe w-16 h-24" />
+          <div className="pipe w-16 h-32" />
+        </div>
+        <div className="ground h-20" />
+      </section>
+
+      <footer className="py-6 text-center pixel text-[9px] text-ink-200">
+        © SAASOBSERVE · APACHE 2.0 · BUILT WITH OTEL · VICTORIAMETRICS · CLICKHOUSE · GRAFANA
       </footer>
     </main>
+  );
+}
+
+const POWERUPS: { title: string; body: string; icon: string; bg: string }[] = [
+  { title: "FIRE FLOWER — OTLP Ingest",  body: "One gateway. Drop OTLP from any SDK or collector. We route to your tenant.", icon: "🔥", bg: "bg-mario-red border-[3px] border-black" },
+  { title: "STAR — Tenant Isolation",    body: "Namespace per customer. Dedicated collector, VictoriaMetrics, ClickHouse, Grafana.", icon: "⭐", bg: "bg-mario-yellow border-[3px] border-black" },
+  { title: "1-UP — GitOps Provisioning", body: "Signup commits manifests. ArgoCD reconciles. Zero kubectl from the control plane.", icon: "🍄", bg: "bg-mario-green border-[3px] border-black" },
+  { title: "CAPE — Scale Tested",        body: "k6 harness validates 100 tenants on a single cluster with honest thresholds.", icon: "🦸", bg: "bg-mario-blue border-[3px] border-black" },
+  { title: "KEY — Your Dashboards",      body: "Your Grafana, your plugins, your users. We just keep it wired and running.", icon: "🔑", bg: "bg-neon-purple border-[3px] border-black" },
+  { title: "HEART — Open Source",        body: "Apache 2.0. Self-host or pay us to run it. No proprietary lock-in on telemetry.", icon: "💖", bg: "bg-neon-pink border-[3px] border-black" },
+];
+
+const STEPS: [string, string, string][] = [
+  ["1", "SIGN UP", "Email+password or Google SSO. Your sub is your tenant id."],
+  ["2", "GET KEY", "Generated on first login, hashed at rest, shown once."],
+  ["3", "SHIP OTLP", "Any SDK. Header: X-Tenant-Key: sk_live_…"],
+  ["4", "OPEN GRAFANA", "Dedicated instance in your tenant namespace."],
+];
+
+function Clouds() {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-16 h-24 overflow-hidden -z-10">
+      <div className="flex gap-24 animate-slide whitespace-nowrap w-[200%]">
+        {Array.from({ length: 12 }).map((_, i) => <Cloud key={i} />)}
+      </div>
+    </div>
+  );
+}
+function Cloud() {
+  return (
+    <svg width="90" height="40" viewBox="0 0 90 40" className="shrink-0">
+      <g fill="#fff" stroke="#000" strokeWidth="3">
+        <rect x="10" y="14" width="70" height="16" />
+        <rect x="4"  y="20" width="82" height="8" />
+        <rect x="18" y="8"  width="20" height="8" />
+        <rect x="46" y="10" width="18" height="6" />
+      </g>
+    </svg>
   );
 }

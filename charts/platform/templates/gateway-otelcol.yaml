@@ -27,25 +27,18 @@ data:
         check_interval: 2s
         limit_percentage: 85
         spike_limit_percentage: 25
-      # Copy the trusted tenant header into a resource attribute so the
-      # routing processor can read it.
-      transform/tenant:
-        error_mode: ignore
-        metric_statements:
-          - context: resource
-            statements:
-              - set(attributes["tenant.id"], metadata["x-saasobserve-tenant"])
-        log_statements:
-          - context: resource
-            statements:
-              - set(attributes["tenant.id"], metadata["x-saasobserve-tenant"])
-        trace_statements:
-          - context: resource
-            statements:
-              - set(attributes["tenant.id"], metadata["x-saasobserve-tenant"])
+      # Read the X-Saasobserve-Tenant header (injected by nginx auth_request)
+      # from the receiver's client metadata and attach it as an attribute so
+      # the routing processor can pick an exporter by tenant.
+      attributes/tenant:
+        actions:
+          - key: tenant.id
+            from_context: metadata.x-saasobserve-tenant
+            action: insert
       batch:
         timeout: 2s
         send_batch_size: 8192
+{{- if .Values.gatewayCollector.tenants }}
       routing:
         from_attribute: tenant.id
         default_exporters: [debug]
@@ -53,6 +46,7 @@ data:
 {{- range .Values.gatewayCollector.tenants }}
           - value: {{ .id | quote }}
             exporters: ["otlphttp/tenant-{{ .id }}"]
+{{- end }}
 {{- end }}
     exporters:
       debug: { verbosity: basic }
@@ -67,7 +61,7 @@ data:
       pipelines:
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter, transform/tenant, batch, routing]
+          processors: [memory_limiter, attributes/tenant, batch{{- if .Values.gatewayCollector.tenants }}, routing{{- end }}]
           exporters:
             - debug
 {{- range .Values.gatewayCollector.tenants }}
@@ -75,7 +69,7 @@ data:
 {{- end }}
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, transform/tenant, batch, routing]
+          processors: [memory_limiter, attributes/tenant, batch{{- if .Values.gatewayCollector.tenants }}, routing{{- end }}]
           exporters:
             - debug
 {{- range .Values.gatewayCollector.tenants }}
@@ -83,7 +77,7 @@ data:
 {{- end }}
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, transform/tenant, batch, routing]
+          processors: [memory_limiter, attributes/tenant, batch{{- if .Values.gatewayCollector.tenants }}, routing{{- end }}]
           exporters:
             - debug
 {{- range .Values.gatewayCollector.tenants }}
@@ -96,7 +90,6 @@ metadata:
   name: gateway-otelcol
   namespace: {{ .Values.namespace }}
   annotations:
-    # Roll when the tenant list changes so the routing table is rebuilt.
     saasobserve.io/config-hash: {{ .Values.gatewayCollector.tenants | toYaml | sha256sum }}
 spec:
   replicas: {{ .Values.gatewayCollector.replicas }}
